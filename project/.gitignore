@@ -4,3 +4,9 @@ sessions
 workspace
 config
 experience
+key_openai.txt
+/**/*/.env
+*.pyc
+/**/*/agentsIds.env
+/**/*/__pycache__
+.vscode
