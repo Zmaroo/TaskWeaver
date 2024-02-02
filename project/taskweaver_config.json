@@ -1,10 +1,9 @@
 {
 "llm.api_base": "https://api.openai.com/v1",
-"llm.api_key": "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",
+"llm.api_key": "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",
 "llm.model": "gpt-4-1106-preview",
 "code_generator.enable_auto_plugin_selection": true,
 "code_generator.auto_plugin_selection_topk:": 3,
 "planner.use_experience": true,
-"code_generator.use_experience": true,
-"code_interpreter.code_verification_on": true
+"code_generator.use_experience": true
 }
