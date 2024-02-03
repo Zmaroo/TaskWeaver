@@ -14,6 +14,82 @@ try:
 except ImportError:
     raise ImportError("Please install the dependencies first.")
 
+def extract_text_from_ipynb(file: str) -> Tuple[str, str]:
+    """
+    Extract text from a Jupyter Notebook (.ipynb) file, using the first markdown cell as the title.
+    :param file: the file path
+    """
+    extracted_text = ""
+    title_found = False
+    title = "Jupyter Notebook"  # Default title
+    try:
+        with open(file, 'r', encoding='utf-8') as f:
+            notebook = json.load(f)
+        for cell in notebook['cells']:
+            if cell['cell_type'] == 'markdown' and not title_found:
+                title = ''.join(cell['source']).strip()
+                title_found = True
+                continue  # Skip adding this cell's content to extracted_text if used as title
+            if cell['cell_type'] == 'code':
+                extracted_text += ''.join(cell['source']) + "\n"
+            elif cell['cell_type'] == 'markdown':
+                extracted_text += ''.join(cell['source']) + "\n"
+    except json.JSONDecodeError as e:
+        print(f"Error reading notebook {file}: {e}")
+    return title, extracted_text
+
+def get_title(file_name: str, prop="title: ") -> str:
+    with open(file_name, encoding="utf-8", errors="ignore") as f_in:
+        for line in f_in:
+            line = line.strip()
+            if line and (line.startswith(prop) or any([c.isalnum() for c in line])):
+                return line
+    return ""
+
+def text_parser(read_file: str) -> Tuple[str, str]:
+    filename, extension = os.path.splitext(read_file)
+    extension = extension.lstrip(".")
+    title = filename
+    soup = None
+    supported_extensions = ["md", "markdown", "html", "htm", "txt", "json", "jsonl", "py", "ipynb"]
+    other_extensions = ["docx", "pptx", "pdf", "csv"]
+
+    default_encoding = "utf-8-sig"
+
+    if extension in ("md", "markdown", "txt", "py"):
+        title = get_title(read_file, prop="# " if extension == 'py' else "title: ")
+        with open(read_file, "r", encoding=default_encoding, errors="ignore") as f:
+            text = f.read()
+    elif extension == 'ipynb':
+        title, text = extract_text_from_ipynb(read_file)
+    elif extension in ("html", "htm"):
+        from bs4 import BeautifulSoup
+        with open(read_file, "r", encoding=default_encoding, errors="ignore") as f:
+            soup = BeautifulSoup(f, "html.parser")
+        title = next(soup.stripped_strings)[:100]
+        text = soup.get_text("\n")
+    elif extension in ("json", "jsonl"):
+        try:
+            with open(read_file, "r", encoding=default_encoding, errors="ignore") as f:
+                data = json.load(f) if extension == "json" else [json.loads(line) for line in f]
+        except:
+            return title, ""
+        if isinstance(data, dict):
+            text = json.dumps(data)
+        elif isinstance(data, list):
+            content_list = [json.dumps(each_json) for each_json in data]
+            text = "\n".join(content_list)
+    elif extension in other_extensions:
+        title, text = extract_text_from_file(read_file, extension)
+    else:
+        print(f"Not support for file with extension: {extension}. The supported extensions are {supported_extensions}")
+        return title, ""
+
+    output_text = re.sub(r"\n{3,}", "\n\n", text)
+    output_text = re.sub(r"-{3,}", "---", output_text)
+    output_text = re.sub(r"\*{3,}", "***", output_text)
+    output_text = re.sub(r"_{3,}", "___", output_text)
+    return title, output_text
 
 def chunk_str_overlap(
     s: str,
@@ -78,22 +154,6 @@ def chunk_str_overlap(
     return final_chunks
 
 
-def get_title(
-    file_name: str,
-    prop="title: ",
-) -> str:
-    """
-    Get the title of a file
-    :param file_name: the file name
-    :param prop: the property to get the title
-    """
-    with open(file_name, encoding="utf-8", errors="ignore") as f_in:
-        for line in f_in:
-            line = line.strip()
-            if line and (line.startswith(prop) or any([c.isalnum() for c in line])):
-                return line
-    return ""
-
 
 def extract_text_from_file(
     file: str,
@@ -154,69 +214,10 @@ def extract_text_from_file(
     return title[:100], extracted_text
 
 
-def text_parser(
-    read_file: str,
-) -> Tuple[str, str]:
-    """
-    Returns the title, parsed text and a BeautifulSoup object with different file extension
-    : param read_file: the input file with a given extension
-    : return: the title, parsed text and a BeautifulSoup object, the BeautifulSoup object is used to get the document
-        link from the html files
-    """
-    filename, extension = os.path.splitext(read_file)
-    extension = extension.lstrip(".")
-    title = filename
-    soup = None
-    supported_extensions = ["md", "markdown", "html", "htm", "txt", "json", "jsonl"]
-    other_extensions = ["docx", "pptx", "pdf", "csv"]
-
-    # utf-8-sig will treat BOM header as a metadata of a file not a part of the file content
-    default_encoding = "utf-8-sig"
-
-    if extension in ("md", "markdown", "txt"):
-        title = get_title(read_file)
-        with open(read_file, "r", encoding=default_encoding, errors="ignore") as f:
-            text = f.read()
-    elif extension in ("html", "htm"):
-        from bs4 import BeautifulSoup
-
-        with open(read_file, "r", encoding=default_encoding, errors="ignore") as f:
-            soup = BeautifulSoup(f, "html.parser")
-        title = next(soup.stripped_strings)[:100]
-        text = soup.get_text("\n")
-    # read json/jsonl file in and convert each json to a row of string
-    elif extension in ("json", "jsonl"):
-        try:
-            with open(read_file, "r", encoding=default_encoding, errors="ignore") as f:
-                data = json.load(f) if extension == "json" else [json.loads(line) for line in f]
-        except:
-            # json file encoding issue, skip this file
-            return title, ""
-
-        if isinstance(data, dict):
-            text = json.dumps(data)
-        elif isinstance(data, list):
-            content_list = [json.dumps(each_json) for each_json in data]
-            text = "\n".join(content_list)
-            title = filename
-    elif extension in other_extensions:
-        title, text = extract_text_from_file(read_file, extension)
-    else:  # no support for other format
-        print(
-            f"Not support for file with extension: {extension}. "
-            f"The supported extensions are {supported_extensions}",
-        )
-        return title, ""
-
-    output_text = re.sub(r"\n{3,}", "\n\n", text)
-    # keep whitespaces for formatting
-    output_text = re.sub(r"-{3,}", "---", output_text)
-    output_text = re.sub(r"\*{3,}", "***", output_text)
-    output_text = re.sub(r"_{3,}", "___", output_text)
-
-    return title, output_text
 
 
+
+# Continue with existing script functions like chunk_str_overlap, extract_text_from_file, chunk_document, etc.
 def chunk_document(
     doc_path: str,
     chunk_size: int,
@@ -272,38 +273,13 @@ def chunk_document(
                 print(f"Error encountered when reading {f}: {traceback.format_exc()} {e}")
     return file_count, texts, metadata_list, chunk_id_to_index
 
-
 if __name__ == "__main__":
     # parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-d",
-        "--doc_path",
-        help="the path of the documents",
-        type=str,
-        default="",
-    )
-    parser.add_argument(
-        "-c",
-        "--chunk_size",
-        help="the size of the chunk",
-        type=int,
-        default=64,
-    )
-    parser.add_argument(
-        "-s",
-        "--chunk_step",
-        help="the step size of the chunk",
-        type=int,
-        default=64,
-    )
-    parser.add_argument(
-        "-o",
-        "--output_path",
-        help="the path of the output",
-        type=str,
-        default="",
-    )
+    parser.add_argument("-d", "--doc_path", help="the path of the documents", type=str, default="")
+    parser.add_argument("-c", "--chunk_size", help="the size of the chunk", type=int, default=64)
+    parser.add_argument("-s", "--chunk_step", help="the step size of the chunk", type=int, default=64)
+    parser.add_argument("-o", "--output_path", help="the path of the output", type=str, default="")
     args = parser.parse_args()
 
     file_count, texts, metadata_list, chunk_id_to_index = chunk_document(

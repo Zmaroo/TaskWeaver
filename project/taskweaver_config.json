@@ -1,9 +1,15 @@
 {
+"llm.api_type":"openai",
 "llm.api_base": "https://api.openai.com/v1",
-"llm.api_key": "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",
+"llm.api_key": "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",
 "llm.model": "gpt-4-1106-preview",
+"llm.response_format": "json_object",
 "code_generator.enable_auto_plugin_selection": true,
 "code_generator.auto_plugin_selection_topk:": 3,
 "planner.use_experience": true,
-"code_generator.use_experience": true
+"code_generator.use_experience": true,
+"planner.prompt_compression": true,
+"code_generator.prompt_compression": true,
+"round_compressor.rounds_to_compress": 2,
+"round_compressor.rounds_to_retain": 3
 }
