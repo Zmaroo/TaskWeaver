@@ -9,7 +9,7 @@ examples: |-
   result, description = paper_summary("paper.pdf")
 
 parameters:
-  - name: paper_file_path
+  - name: ./sample_data/knowledge_base/TaskWeaverDocsIndex
     type: str
     required: true
     description: The file path of the paper to be summarized.
