@@ -11,5 +11,8 @@
 "planner.prompt_compression": true,
 "code_generator.prompt_compression": true,
 "round_compressor.rounds_to_compress": 2,
-"round_compressor.rounds_to_retain": 3
+"round_compressor.rounds_to_retain": 3,
+"code_generator.example_base_path": "${AppBaseDir}/codeinterpreter_examples",
+"planner.example_base_path": "${AppBaseDir}/planner_examples",
+"plugin.base_path": "${AppBaseDir}/plugins"
 }
