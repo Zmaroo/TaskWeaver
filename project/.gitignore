@@ -4,3 +4,32 @@ sessions
 workspace
 config
 experience
+taskweaver_config.json
+logs/
+data/
+output/
+
+# General
+*.log
+*.csv
+*.dat
+*.out
+*.pid
+*.seed
+*.db
+*.sql
+*.sqlite
+
+# Environment files
+.env
+.venv/
+*.pem
+*.key
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter Notebook
+.ipynb_checkpoints
