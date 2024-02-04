@@ -1,4 +1,5 @@
 import argparse
+import pathspec
 import csv
 import json
 import os
@@ -218,17 +219,13 @@ def extract_text_from_file(
 
 
 # Continue with existing script functions like chunk_str_overlap, extract_text_from_file, chunk_document, etc.
+import pathspec
+
 def chunk_document(
     doc_path: str,
     chunk_size: int,
     chunk_step: int,
 ) -> Tuple[int, List[str], List[Dict[str, str]], Dict[str, int]]:
-    """
-    Split documents into chunks
-    :param doc_path: the path of the documents
-    :param chunk_size: the size of the chunk
-    :param chunk_step: the step size of the chunk
-    """
     texts = []
     metadata_list = []
     file_count = 0
@@ -236,11 +233,24 @@ def chunk_document(
 
     enc = tiktoken.encoding_for_model("gpt-3.5-turbo")
 
+    # Read .gitignore and create a PathSpec
+    gitignore_path = os.path.join(doc_path, '.gitignore')
+    if os.path.exists(gitignore_path):
+        with open(gitignore_path, 'r') as gitignore_file:
+            gitignore_patterns = gitignore_file.read()
+        spec = pathspec.PathSpec.from_lines('gitwildmatch', gitignore_patterns.splitlines())
+    else:
+        spec = None
+
     # traverse all files under dir
     print("Split documents into chunks...")
     for root, dirs, files in os.walk(doc_path):
         for name in files:
             f = os.path.join(root, name)
+            # Skip files that match .gitignore patterns
+            if spec and spec.match_file(f):
+                print(f"Skipping {f} as it matches .gitignore patterns")
+                continue
             print(f"Reading {f}")
             try:
                 title, content = text_parser(f)
@@ -272,6 +282,7 @@ def chunk_document(
             except Exception as e:
                 print(f"Error encountered when reading {f}: {traceback.format_exc()} {e}")
     return file_count, texts, metadata_list, chunk_id_to_index
+
 
 if __name__ == "__main__":
     # parse arguments
