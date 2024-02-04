@@ -1,3 +1,4 @@
+# Plugin registration: document_retriever
 import json
 import os
 import pickle
